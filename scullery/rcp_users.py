@@ -89,10 +89,20 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
   ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from scullery import cloud
+from scullery import formatters
 from scullery import parsers
 from scullery import usergroup
 
-def mod_group(args:argparse.Namespace):
+
+# Columns for the list (default table) view.
+COLUMNS: formatters.Columns = [
+  ('name',        'Name'),
+  ('description', 'Description'),
+  ('email',       'Email'),
+]
+
+def mod_group(args: argparse.Namespace) -> None:
+  '''Add or remove a user from a group'''
   cc = cloud()
   q = cc.iam.groups(args.group)
   if len(q) != 1:
@@ -111,13 +121,18 @@ def mod_group(args:argparse.Namespace):
   else:
     raise KeyError(args.op)
 
-def list_users(args:argparse.Namespace):
+def list_users(args: argparse.Namespace) -> None:
+  '''List all users'''
   cc = cloud()
-  for u in cc.iam.users():
-    if 'description' not in u: u['description'] = ''
-    print('{name} {description} {email}'.format(**u))
+  data = cc.iam.users()
+  # Ensure description key exists for every user (current code did this)
+  for u in data:
+    u.setdefault('description', '')
+  rows = formatters.extract_rows(data, COLUMNS)
+  formatters.write_output(rows, COLUMNS, args.format)
 
-def get_user(args:argparse.Namespace):
+def get_user(args: argparse.Namespace) -> None:
+  '''Show detailed info for one or more users'''
   cc = cloud()
   for user_name in args.user:
     users = cc.iam.users(user_name)
@@ -125,14 +140,21 @@ def get_user(args:argparse.Namespace):
       print(f'{user_name} not matched')
       continue
     u = users[0]
-    print(json.dumps(u,indent=2))
-    q = cc.iam.user_groups(u['id'])
-    if len(q) > 0:
-      print('groups:')
-      for g in q:
-        print('  {name} {description}'.format(**g))
 
-def add_user(args:argparse.Namespace):
+    if args.format == 'terminal':
+      print(json.dumps(u, indent=2))
+      q = cc.iam.user_groups(u['id'])
+      if len(q) > 0:
+        print('groups:')
+        for g in q:
+          print('  {name} {description}'.format(**g))
+    else:
+      out = dict(u)
+      out['groups'] = cc.iam.user_groups(u['id'])
+      formatters.write_single_output(out, args.format)
+
+def add_user(args: argparse.Namespace) -> None:
+  '''Create a new user'''
   cc = cloud()
 
   res = usergroup.add_user(cc,
@@ -144,7 +166,8 @@ def add_user(args:argparse.Namespace):
               groups = args.group)
   print(yaml.dump(res))
 
-def del_user(args:argparse.Namespace):
+def del_user(args: argparse.Namespace) -> None:
+  '''Delete one or more users'''
   cc = cloud()
   for u in args.name:
     try:
@@ -155,7 +178,8 @@ def del_user(args:argparse.Namespace):
     except KeyError:
       sys.stderr.write(f'{u}: User not found\n')
 
-def set_passwd(args:argparse.Namespace):
+def set_passwd(args: argparse.Namespace) -> None:
+  '''Set or reset a user password'''
   cc = cloud()
 
   q = cc.iam.users(args.user)
@@ -166,11 +190,13 @@ def set_passwd(args:argparse.Namespace):
     print('password', args.password)
   cc.iam.reset_passwd( user_id, args.password, args.set_pwd)
 
-def parser(subp):
+def parser(subp: argparse.ArgumentParser) -> None:
+  '''Register the ``users`` sub-parser'''
   pr = subp.add_parser('users',
                         help = 'User recipes',
                         aliases = ['user','usr','u'])
   pr.set_defaults(recipe_cb = list_users)
+  formatters.add_format_arg(pr)
   usp = pr.add_subparsers(title='op',
                           description='Operation.  If not spcified, list users.',
                           required = False,
@@ -182,6 +208,7 @@ def parser(subp):
                   help='User to look-up',
                   nargs='+')
   pp.set_defaults(recipe_cb = get_user)
+  formatters.add_single_format_arg(pp)
 
   pp = usp.add_parser('add',
                   help = 'Add user',

@@ -11,21 +11,6 @@ import re
 import sys
 import os
 
-def show_proxy(autocfg:bool, debug:bool = False) -> None:
-  '''Handle show proxy sub-command
-
-  :param autocfg: Perform auto configuration
-  :param debug: Show extra details
-  '''
-  if autocfg:
-    proxy, url, jstext = proxy_auto_cfg()
-    print(f'Auto config URL: {url}')
-    print(f'Proxy: {proxy}')
-    if debug: print(f'Javascript:\n{jstext}')
-  else:
-    print('No proxy autoconfiguration')
-    if 'http_proxy' in os.environ: print('http_proxy:  {http_proxy}'.format(http_proxy=os.environ['http_proxy']))
-    if 'https_proxy' in os.environ: print('https_proxy: {https_proxy}'.format(https_proxy=os.environ['https_proxy']))
 
 def proxy_auto_cfg():
   ''' Configure PROXY from Windows registry AutoConfigURL
@@ -38,16 +23,12 @@ def proxy_auto_cfg():
   if not has_winreg:
     sys.stderr.write('No proxy_auto_cfg possible\n')
     return None, None, None
-  try:
-    REG_PATH = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings'
-    REG_KEY_NAME = 'AutoConfigURL'
-    registry_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_PATH, 0,
+  REG_PATH = r'Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+  REG_KEY_NAME = 'AutoConfigURL'
+  registry_key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_PATH, 0,
                                        winreg.KEY_READ)
-    value, regtype = winreg.QueryValueEx(registry_key, REG_KEY_NAME)
-    winreg.CloseKey(registry_key)
-  except FileNotFoundError:
-    print('No AutoConfig URL')
-    return None,None,None
+  value, regtype = winreg.QueryValueEx(registry_key, REG_KEY_NAME)
+  winreg.CloseKey(registry_key)
 
   if not value: return None, None, None
 
@@ -65,14 +46,10 @@ def proxy_auto_cfg():
 
   if not resp.ok: return None, value, None
 
-  if mv := re.search(r'PROXY (\d+\.\d+\.\d+\.\d+:\d+)', resp.text):
-    return mv[1], value, resp.text
-  
-  # OK, this is another proxy regexp matching string.
-  if mv := re.search(r'PROXY ([A-Za-z][-\.A-Za-z0-9]+:\d+)', resp.text):
-    return mv[1], value, resp.text
+  mv = re.search(r'PROXY (\d+\.\d+\.\d+\.\d+:\d+);', resp.text)
+  proxy = mv[1] if mv else None
 
-  return None
+  return proxy, value, resp.text
 
 def show_autocfg(opts = None):
   ''' Print the proxy auto configuration results
@@ -88,7 +65,7 @@ def show_autocfg(opts = None):
     print(jstext)
 
 def proxy_cfg(debug=False):
-  '''Configure proxy
+  ''' Configure proxy
 
   :param bool debug: (optional) Show the proxy being used
 

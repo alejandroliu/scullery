@@ -1,7 +1,7 @@
 # Command Line Interface
 
 ```{argparse}
-   :filename: ../scullery/__main__.py
+   :module: scullery.__main__
    :func: cmd_cli
 ```
 

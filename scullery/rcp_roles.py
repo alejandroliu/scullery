@@ -74,8 +74,45 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
   ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from scullery import cloud
+from scullery import formatters
 from scullery import parsers
 from scullery import usergroup
+
+
+# Columns for the list (default table) view.
+# Machine-readable formats (json/yaml/csv/tsv) include id;
+# terminal/markdown omit it.
+COLUMNS: formatters.Columns = [
+  ('id',           'ID'),
+  ('name',         'Name'),
+  ('type',         'Type'),
+  ('display_name', 'Display Name'),
+  ('description',  'Description'),
+]
+
+# Columns for human-readable output (no raw id, no name).
+COLUMNS_HUMAN: formatters.Columns = [
+  ('type',         'Type'),
+  ('display_name', 'Display Name'),
+  ('description',  'Description'),
+]
+
+# Human-readable columns when --show-id is given.
+COLUMNS_HUMAN_FULL: formatters.Columns = [
+  ('id',           'ID'),
+  ('name',         'Name'),
+  ('type',         'Type'),
+  ('display_name', 'Display Name'),
+  ('description',  'Description'),
+]
+
+# Map short role-type codes to human-readable descriptions.
+TYPE_MAP = {
+  'AX': 'Account',
+  'XA': 'Project',
+  'AA': 'Both',
+  'XX': 'None',
+}
 
 def dump_roles(roles:list) -> None:
   '''INTERNAL: print role details
@@ -90,11 +127,25 @@ def dump_roles(roles:list) -> None:
     values.update(role)
     print('{name:16} {type} {display_name:24} {description}'.format(**values))
 
-def list_cc_roles(args:argparse.Namespace):
+def list_cc_roles(args: argparse.Namespace) -> None:
+  '''List custom roles'''
   cc = cloud()
-  dump_roles(cc.iam.custom_roles())
+  data = cc.iam.custom_roles()
+  for r in data:
+    r.setdefault('description', '')
+    r.setdefault('display_name', '')
+    if args.format in ('terminal', 'markdown'):
+      typ = r.get('type', '')
+      r['type'] = TYPE_MAP.get(typ, typ)
+  if args.format in ('terminal', 'markdown'):
+    cols = COLUMNS_HUMAN_FULL if getattr(args, 'long', False) else COLUMNS_HUMAN
+  else:
+    cols = COLUMNS
+  rows = formatters.extract_rows(data, cols)
+  formatters.write_output(rows, cols, args.format)
 
-def del_role(args:argparse.Namespace):
+def del_role(args: argparse.Namespace) -> None:
+  '''Delete one or more custom roles'''
   cc = cloud()
   for r in args.name:
     try:
@@ -104,7 +155,8 @@ def del_role(args:argparse.Namespace):
     except KeyError:
       sys.stderr.write(f'{g}: Role not found\n')
 
-def add_role(args:argparse.Namespace):
+def add_role(args: argparse.Namespace) -> None:
+  '''Create a new custom role from a policy file'''
   cc = cloud()
   policies = yaml.safe_load(args.policy)
 
@@ -114,22 +166,41 @@ def add_role(args:argparse.Namespace):
 
   print(json.dumps(new_role, indent=2))
 
-def list_sys_roles(args:argparse.Namespace):
+def list_sys_roles(args: argparse.Namespace) -> None:
+  '''List system (built-in) roles'''
   cc = cloud()
-  dump_roles(cc.iam.system_roles())
+  data = cc.iam.system_roles()
+  for r in data:
+    r.setdefault('description', '')
+    r.setdefault('display_name', '')
+    if args.format in ('terminal', 'markdown'):
+      typ = r.get('type', '')
+      r['type'] = TYPE_MAP.get(typ, typ)
+  if args.format in ('terminal', 'markdown'):
+    cols = COLUMNS_HUMAN_FULL if getattr(args, 'long', False) else COLUMNS_HUMAN
+  else:
+    cols = COLUMNS
+  rows = formatters.extract_rows(data, cols)
+  formatters.write_output(rows, cols, args.format)
 
 
-def get_role(args:argparse.Namespace):
+def get_role(args: argparse.Namespace) -> None:
+  '''Show detailed info for one or more roles'''
   cc = cloud()
   for role_name in args.role:
     role = cc.iam.get_role(role_name)
-    print(json.dumps(role, indent=2))
+    formatters.write_single_output(role, args.format)
 
-def parser(subp):
+def parser(subp: argparse.ArgumentParser) -> None:
+  '''Register the ``roles`` sub-parser'''
   pr = subp.add_parser('roles',
                         help = 'Role recipes',
                         aliases = ['role'])
   pr.set_defaults(recipe_cb = list_cc_roles)
+  formatters.add_format_arg(pr)
+  pr.add_argument('--long', '-l',
+                  action='store_true', default=False,
+                  help='Show Name and ID columns in human-readable output')
 
   rsp = pr.add_subparsers(title='op',
                           description='Operation.  If not spcified, list custom roles.',
@@ -152,6 +223,7 @@ def parser(subp):
                   help='Role to look-up',
                   nargs='+')
   pp.set_defaults(recipe_cb = get_role)
+  formatters.add_single_format_arg(pp)
 
   pp = rsp.add_parser('add',
                   help = 'Add role',

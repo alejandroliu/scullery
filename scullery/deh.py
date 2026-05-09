@@ -24,7 +24,7 @@ class Deh:
     '''Constructor'''
     self.session = session
 
-  def deh_types(self, az:str) -> list:
+  def deh_types(self, az:str|int) -> list:
     '''Query Flavors
 
     :param az: AZ to query
@@ -34,6 +34,16 @@ class Deh:
     Will query and return a list deh types.
 
     '''
+    if isinstance(az,int):
+      aznum = f'-{az:02}'
+      azs = self.session.ecs.availability_zones()
+      for i in azs:
+        if i.endswith(aznum):
+          az = i
+          break
+      else:
+        raise KeyError(az)
+
     region_id = self.session.region_id()
 
     url = f'v1.0/{region_id}/availability-zone/{az}/dedicated-host-types'
@@ -48,7 +58,7 @@ if __name__ == '__main__':
   import api
   import creds
   import yaml
-  cfg = creds.creds(cloud_name = 'otc-de')
+  cfg = creds.creds(cloud_name = 'otc-eu-de')
   # ~ ic(cfg)
   # ~ api.http_logging(1)
   api = api.ApiSession(cfg, True)

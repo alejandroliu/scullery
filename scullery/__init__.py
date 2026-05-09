@@ -36,15 +36,26 @@ defaults = {
 #
 # Support functions
 #
-def cloud(cloud_name:str = '', scoped:bool =False, **kwargs) -> api.ApiSession:
+def cloud(cloud_name: str = '', scoped=None, **kwargs) -> api.ApiSession:
   '''Return connections to clouds
 
   :param cloud_name: Cloud to configure
-  :param scoped: create a scoped token
+  :param scoped: ``None`` for unscoped token, ``True`` for token scoped to
+                 the root region project, or a project name string to scope
+                 the token to that specific project.
   :param **kwargs: optional credentials to use
   :returns: An API session
   '''
-  cloud_id = f'{cloud_name if cloud_name != "" else defaults["cloud"]}{":scoped" if scoped else ""}'
+  if scoped is True:
+    scoped_key = ':scoped'
+  elif isinstance(scoped, str):
+    scoped_key = f':scoped={scoped}'
+  elif scoped is None or scoped is False:
+    scoped_key = ''
+  else:
+    raise TypeError(f'Invalid scoped value: {scoped!r}')
+
+  cloud_id = f'{cloud_name if cloud_name != "" else defaults["cloud"]}{scoped_key}'
 
   if not cloud_id in clouds:
     fopts = dict(kwargs)

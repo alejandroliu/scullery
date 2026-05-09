@@ -51,17 +51,27 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
   ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from scullery import cloud
+from scullery import formatters
 from scullery import parsers
 from scullery import usergroup
 
-def add_group(args:argparse.Namespace):
+
+# Columns for the list (default table) view.
+COLUMNS: formatters.Columns = [
+  ('name',        'Name'),
+  ('description', 'Description'),
+]
+
+def add_group(args: argparse.Namespace) -> None:
+  '''Create a new group'''
   cc = cloud()
   newid = usergroup.add_group(cc, args.name,
             description = args.description,
             project = args.project)
   print('grp id', newid)
 
-def del_group(args:argparse.Namespace):
+def del_group(args: argparse.Namespace) -> None:
+  '''Delete one or more groups'''
   cc = cloud()
   for g in args.name:
     try:
@@ -72,7 +82,8 @@ def del_group(args:argparse.Namespace):
     except KeyError:
       sys.stderr.write(f'{g}: Group not found\n')
 
-def get_group(args:argparse.Namespace):
+def get_group(args: argparse.Namespace) -> None:
+  '''Show detailed info for one or more groups'''
   cc = cloud()
   for group_name in args.group:
     group = cc.iam.groups(group_name)
@@ -80,28 +91,33 @@ def get_group(args:argparse.Namespace):
       sys.stderr.write(f'{group_name} not matched\n')
       continue
     group = group[0]
-    print('id:    {id}\n name: {name}\n desc: {description}'.format(**group))
-    # ~ print(json.dumps(group,indent=2))
 
-    perms = cc.iam.get_domain_group_perms(group['domain_id'], group['id'])
-    if len(perms) > 0:
-      # ~ print(json.dumps(perms,indent=2))
-      print(' Domain roles:')
-      for r in perms:
-        print('  - {display_name}: {description}'.format(**r))
+    if args.format == 'terminal':
+      print('id:    {id}\n name: {name}\n desc: {description}'.format(**group))
+      perms = cc.iam.get_domain_group_perms(group['domain_id'], group['id'])
+      if len(perms) > 0:
+        print(' Domain roles:')
+        for r in perms:
+          print('  - {display_name}: {description}'.format(**r))
+      users = cc.iam.group_users(group['id'])
+      if len(users) > 0:
+        print(' users;')
+        for u in users:
+          print('   {name}: {description}'.format(**u))
+    else:
+      out = dict(group)
+      out['domain_roles'] = cc.iam.get_domain_group_perms(group['domain_id'], group['id'])
+      out['users'] = cc.iam.group_users(group['id'])
+      formatters.write_single_output(out, args.format)
 
-    users = cc.iam.group_users(group['id'])
-    if len(users) > 0:
-      print(' users;')
-      for u in users:
-        print('   {name}: {description}'.format(**u))
-
-def list_groups(args:argparse.Namespace):
+def list_groups(args: argparse.Namespace) -> None:
+  '''List all groups'''
   cc = cloud()
-  for g in cc.iam.groups():
-    print('{name} {description}'.format(**g))
+  rows = formatters.extract_rows(cc.iam.groups(), COLUMNS)
+  formatters.write_output(rows, COLUMNS, args.format)
 
-def parser(subp):
+def parser(subp: argparse.ArgumentParser) -> None:
+  '''Register the ``groups`` sub-parser'''
   pr = subp.add_parser('groups',
                         help = 'Group recipes',
                         aliases = ['group','grp','g'])
@@ -116,6 +132,7 @@ def parser(subp):
                   help='Group to look-up',
                   nargs='+')
   pp.set_defaults(recipe_cb = get_group)
+  formatters.add_single_format_arg(pp)
 
   pp = gsp.add_parser('add',
                   help = 'Add group',
@@ -138,6 +155,7 @@ def parser(subp):
 
 
   pr.set_defaults(recipe_cb = list_groups)
+  formatters.add_format_arg(pr)
 
 
 parsers.register_parser('groups',parser)

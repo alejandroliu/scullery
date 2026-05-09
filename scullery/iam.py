@@ -29,6 +29,7 @@ class Iam:
     self.sys_roles = None
     self.usr_roles = None
 
+
   def system_roles(self) -> list:
     '''Create a list of system roles
 
@@ -463,7 +464,13 @@ class Iam:
 
     :param duration_seconds: AK/SK validity (defaults to 900 seconds/15 minutes
     :returns: AK,SK token
+    :raises RuntimeError: if the session has no token (e.g. AK/SK auth mode)
     '''
+    if self.session.token is None:
+      raise RuntimeError(
+        'Cannot issue AK/SK: session has no bearer token. '
+        'This session is using AK/SK or federated authentication.'
+      )
     resp = self.session.post(self.api_path('v3.0/OS-CREDENTIAL/securitytokens'),
             data = json.dumps({
                 'auth': {

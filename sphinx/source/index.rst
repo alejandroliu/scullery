@@ -11,7 +11,8 @@ scullery |release|
    README
    cli
    apidocs/index
-   config
+   docs/config
+   recipes/index
 
 
 Indices and tables

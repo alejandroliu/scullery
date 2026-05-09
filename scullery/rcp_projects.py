@@ -71,11 +71,21 @@ except ImportError:  # Graceful fallback if IceCream isn't installed.
   ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from scullery import cloud
+from scullery import formatters
 from scullery import parsers
 
 RE_PRJSIG = re.compile(r'^-- \S+ created by \S+ using scullery -- project:(\S+)($|\|)')
 
-def add_prj(args:argparse.Namespace):
+# Columns for the list (default table) view.
+COLUMNS: formatters.Columns = [
+  ('id',          'ID'),
+  ('name',        'Name'),
+  ('status',      'Status'),
+  ('description', 'Description'),
+]
+
+def add_prj(args: argparse.Namespace) -> None:
+  '''Create a new project'''
   cc = cloud()
 
   desc = f'-- Project created by {os.getlogin()} using scullery'
@@ -93,39 +103,62 @@ def add_prj(args:argparse.Namespace):
   newid = cc.iam.new_project(args.name, regdat[0]['id'], desc)
   sys.stderr.write(f'Project ID={newid}\n')
 
-def list_prj(args:argparse.Namespace):
+def list_prj(args: argparse.Namespace) -> None:
+  '''List all projects with details'''
   cc = cloud()
+  data = []
   for p in cc.iam.projects():
     details = cc.iam.get_project_details(p['id'])
-    print('{id} {name:22} {status:8} {description}'.format(**details))
-      # ~ print(json.dumps(details, indent=2))
+    data.append(details)
+  # Hide the raw ID for human-readable formats.
+  if args.format in ('terminal', 'markdown'):
+    cols = [c for c in COLUMNS if c[0] != 'id']
+  else:
+    cols = COLUMNS
+  rows = formatters.extract_rows(data, cols)
+  formatters.write_output(rows, cols, args.format)
 
-def get_prj(args:argparse.Namespace):
+def get_prj(args: argparse.Namespace) -> None:
+  '''Show detailed info for one or more projects'''
   cc = cloud()
   grps = cc.iam.groups()
   for prj_name in args.project:
     prjlst = cc.iam.projects(name=args.project)
     for prj in prjlst:
       details = cc.iam.get_project_details(prj['id'])
-      print('id:        {id}\n  name:    {name}\n  desc:    {description}\n  enabled: {enabled}\n  status:  {status}'.format(**details))
-      roles = {}
-      for g in grps:
-        gr = cc.iam.get_project_group_perms(prj['id'], g['id'])
-        if len(gr) > 0:
-          roles[g['id']] = [ g['name'] ]
-          q = ''
-          rstr = ''
-          for r in gr:
-            rstr += q + r['display_name']
-            q = ', '
-          roles[g['id']].append(rstr)
-      if len(roles) > 0:
-        print('  roles per group')
-        for role in roles.values():
-          print('    {0}: {1}'.format(*role))
+
+      if args.format == 'terminal':
+        print('id:        {id}\n  name:    {name}\n  desc:    {description}\n  enabled: {enabled}\n  status:  {status}'.format(**details))
+        roles = {}
+        for g in grps:
+          gr = cc.iam.get_project_group_perms(prj['id'], g['id'])
+          if len(gr) > 0:
+            roles[g['id']] = [ g['name'] ]
+            q = ''
+            rstr = ''
+            for r in gr:
+              rstr += q + r['display_name']
+              q = ', '
+            roles[g['id']].append(rstr)
+        if len(roles) > 0:
+          print('  roles per group')
+          for role in roles.values():
+            print('    {0}: {1}'.format(*role))
+      else:
+        out = dict(details)
+        out['roles'] = []
+        for g in grps:
+          gr = cc.iam.get_project_group_perms(prj['id'], g['id'])
+          if len(gr) > 0:
+            out['roles'].append({
+              'group': g['name'],
+              'permissions': [r['display_name'] for r in gr],
+            })
+        formatters.write_single_output(out, args.format)
 
 
-def del_prj(args:argparse.Namespace):
+def del_prj(args: argparse.Namespace) -> None:
+  '''Delete one or more projects (checks for active resources)'''
   cc = cloud()
   for prjname in args.name:
     try:
@@ -173,7 +206,8 @@ def del_prj(args:argparse.Namespace):
     except KeyError:
       sys.stderr.write(f'{prjname}: Project not found\n')
 
-def grant_prj(args:argparse.Namespace):
+def grant_prj(args: argparse.Namespace) -> None:
+  '''Grant a role to a group on a project'''
   cc = cloud()
 
   role = args.grants[0]
@@ -217,7 +251,8 @@ def grant_prj(args:argparse.Namespace):
 
   cc.iam.grant_project_group_perms(prj_id, grp_id, role_id)
 
-def revoke_prj(args:argparse.Namespace):
+def revoke_prj(args: argparse.Namespace) -> None:
+  '''Revoke a role from a group on a project'''
   cc = cloud()
 
   role = args.revokes[0]
@@ -261,11 +296,13 @@ def revoke_prj(args:argparse.Namespace):
   cc.iam.revoke_project_group_perms(prj_id, grp_id, role_id)
 
 
-def parser(subp):
+def parser(subp: argparse.ArgumentParser) -> None:
+  '''Register the ``project`` sub-parser'''
   pr = subp.add_parser('project',
                         help = 'Project Management service',
                         aliases = ['projects', 'prj','p'])
   pr.set_defaults(recipe_cb = list_prj)
+  formatters.add_format_arg(pr)
 
   sp = pr.add_subparsers(title='op',
                           description='Operation.  If not spcified, list projects.',
@@ -279,6 +316,7 @@ def parser(subp):
                   help='Project to look-up',
                   nargs='+')
   pp.set_defaults(recipe_cb = get_prj)
+  formatters.add_single_format_arg(pp)
 
   pp = sp.add_parser('add',
                   help = 'Add Project',

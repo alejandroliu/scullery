@@ -7,7 +7,7 @@ if EXIST %~dp0%..\env.bat (
   call %~dp0%..\env.bat
 )
 set PYTHONPATH=%PYTHONPATH%;%~dp0
-if NOT "%proxy%"=="" (
+if NOT "%proxy"=="" (
   set http_proxy=http://%proxy%/
   set https_proxy=http://%proxy%/
   set pipproxy=--proxy=%proxy%

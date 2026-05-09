@@ -20,7 +20,7 @@ from scullery import proxycfg
 from scullery import parsers
 from scullery import api
 
-from scullery import rcp_ecs
+from scullery import rcp_buckets
 from scullery import rcp_ims
 from scullery import rcp_groups
 from scullery import rcp_kermit
@@ -30,12 +30,19 @@ from scullery import rcp_roles
 from scullery import rcp_showcfg
 from scullery import rcp_tms
 from scullery import rcp_users
+from scullery import rcp_deh
+from scullery import rcp_ecs
+from scullery import rcp_curler
 
 from scullery import cloud
 
 def cmd_cli():
   ''' Command Line Interface argument parser '''
-  cli = ArgumentParser(prog=scullery.__meta__.name,description=scullery.__meta__.description)
+  cli = ArgumentParser(
+                        prog=scullery.__meta__.name,
+                        description=scullery.__meta__.description,
+                        fromfile_prefix_chars = '@',
+                      )
 
   cli.add_argument('-A','--autocfg',help='Use WinReg to configure proxy', action='store_true', default = False)
   cli.add_argument('-C','--cloud', help='Specify default cloud config')
