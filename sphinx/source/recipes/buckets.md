@@ -1,7 +1,7 @@
 # Buckets — Object Storage (OBS) Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_buckets
+.. module:: recipes.buckets
    :synopsis: List, create, delete, and manage tags and access policies for OBS buckets.
 ```
 

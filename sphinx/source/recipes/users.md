@@ -1,7 +1,7 @@
 # Users — IAM User Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_users
+.. module:: recipes.users
    :synopsis: List, create, delete and manage IAM users, their group membership and passwords.
 ```
 

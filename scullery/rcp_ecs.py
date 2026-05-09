@@ -67,6 +67,17 @@ COLUMNS_FLAVORS_FULL: formatters.Columns = [
   ('ram',         'RAM (GB)'),
 ]
 
+COLUMNS_ZONES_TTY: formatters.Columns = [
+  ('name',      'Name'),
+  ('available', 'Available'),
+]
+
+COLUMNS_ZONES_FULL: formatters.Columns = [
+  ('name',      'Name'),
+  ('available', 'Available'),
+  ('hosts',     'Hosts'),
+]
+
 
 # ── Helpers ────────────────────────────────────────────────────────
 
@@ -134,6 +145,25 @@ def list_flavors(args: argparse.Namespace) -> None:
   cols = COLUMNS_FLAVORS_FULL if args.format in ('json', 'yaml') else COLUMNS_FLAVORS_TTY
   rows = formatters.extract_rows(data, cols)
   formatters.write_output(rows, cols, args.format)
+
+def list_zones(args: argparse.Namespace) -> None:
+  '''List availability zones'''
+  cc = cloud(scoped=args.project or True)
+  raw = cc.ecs.availability_zones()
+
+  # Convert dict to a list of structured records
+  data = []
+  for name, info in raw.items():
+    data.append({
+      'name': name,
+      'available': 'Available' if info.get('available') else 'Not Available',
+      'hosts': info.get('hosts', {}),
+    })
+
+  cols = COLUMNS_ZONES_TTY if args.format in ('terminal', 'markdown') else COLUMNS_ZONES_FULL
+  rows = formatters.extract_rows(data, cols)
+  formatters.write_output(rows, cols, args.format)
+
 
 
 def get_ecs(args: argparse.Namespace) -> None:
@@ -214,6 +244,14 @@ def parser(subp: argparse.ArgumentParser) -> None:
                   help='Minimum disk size in GB')
   formatters.add_format_arg(pp)
   pp.set_defaults(recipe_cb=list_flavors)
+
+  # -- zones ----------------------------------------------------------
+  pp = sp.add_parser('availability-zones',
+                     help='List availability zones',
+                     aliases=['azs','zones'])
+  formatters.add_format_arg(pp)
+  pp.set_defaults(recipe_cb=list_zones)
+
 
   # -- get --------------------------------------------------------------
   pp = sp.add_parser('get',

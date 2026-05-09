@@ -1,7 +1,7 @@
 # TMS — Tag Management Service
 
 ```{eval-rst}
-.. module:: scullery.rcp_tms
+.. module:: recipes.tms
    :synopsis: Create, list and delete pre-defined tags.
 ```
 

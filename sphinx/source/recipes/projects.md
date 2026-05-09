@@ -1,7 +1,7 @@
 # Projects — Project Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_projects
+.. module:: recipes.projects
    :synopsis: List, create, delete and manage IAM projects and their role assignments.
 ```
 

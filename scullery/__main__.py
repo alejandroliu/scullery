@@ -32,7 +32,6 @@ from scullery import rcp_tms
 from scullery import rcp_users
 from scullery import rcp_deh
 from scullery import rcp_ecs
-from scullery import rcp_curler
 
 from scullery import cloud
 

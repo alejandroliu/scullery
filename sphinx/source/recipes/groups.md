@@ -1,7 +1,7 @@
 # Groups — IAM Group Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_groups
+.. module:: recipes.groups
    :synopsis: List, create, delete and inspect IAM groups.
 ```
 

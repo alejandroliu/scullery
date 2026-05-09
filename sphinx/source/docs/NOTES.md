@@ -36,44 +36,78 @@
   This is possible from Terraform.  TF supports the full
   cycle, including creating buckets, upload object etc.
 
-Authentication is done via
+Authentication
 
-* SCL_USERNAME
-* SCL_PASSWORD
-* SCL_TENANT = OTC0000xxxx
-* SCL_REGION = eu-de|eu-nl -- test if we can auth in DE and then use
-  a eu-nl project
+enviroment
+OS_USERNAME
+OS_USER_DOMAIN_NAME
+OS_PASSWORD
 
-We have code to do AK/SK reuqests, but these are not allowed to do
-IAM calls, TMS is also not working with AK/SK.  They are scoped
-at creation time (to the scope of the token that created the AK/SK)
-so they can not change scope after creation.
+Assumes eu-de unless OS_TENANT_NAME
 
-Most of the recipes do not work with those restrictions.  The only
-recipes that work well with those restrictions are the buckets recipes
-and the raw REST API recipes.
+Otherwise uses file:
+- /etc/openstack/{clouds,secure}.yaml
+- ~/.config/openstack/{clouds,secure}.yaml
+- current dir ./{clouds,secure}.yaml)
 
-or
+If using clouds.yaml
 
-.config/scullery/creds.yaml
+```yaml
+clouds:
+  scullery:
+    auth:
+      username: '<USER_NAME>'
+      password: '<PASSWORD>'
+      user_domain_name: 'OTC00000000001000000xxx'
+```
+Will only look for `scullery` as the project key.
+assumes eu-de.
 
-rcp_curler uses that or can override with CLI args ak/sk/token
+Show a warning if user has OS_TENANT_NAME or OS_PROJECT_NAME
+or has (clouds)(scullery)(auth)(project_name) defined in clouds.yaml
+and a scope is requested on command line.
 
-login
+> We have code to do AK/SK reuqests, but these are not allowed to do
+> IAM calls, TMS is also not working with AK/SK.  They are scoped
+> at creation time (to the scope of the token that created the AK/SK)
+> so they can not change scope after creation.
+>
+> Most of the recipes do not work with those restrictions.  The only
+> recipes that work well with those restrictions are the buckets recipes
+> and the raw REST API recipes.
 
-* Files
-  * user clouds.yaml/CLI specified file/OS_CLIENT_CONFIG_FILE
-  * ~/.s3cfg
-* Scoped
-  * Create clouds.yaml in current directory or CLI spcified or OS_CLIENT_CONFIG_FILE
-  * Option to write a hcl file with authentication variables
-  * Warn: Environment AK/SK or Username or Token
-  * Create backend.hcl in current directory (unless overriden)
-* Unscoped
-  * Warn: Environment AK/SK, just use Environment Username
-  * CLI specified file|OS_CLIENT_CONFIG_FILE
-  * If not overridenn we write to user .config/openstack/clouds.yaml
-    and ~/.s3cfg
-* Login always uses temp AK/SK
+* login - configures ~/.config/openstack ... Default `scullery` key,
+  Complains if environment is set.
+  Can configure via CLI or interactively.
+  `pip install questionary` for interaction.
+  Or use to configure other clouds in ~/.config/openstack via
+  CLI or interactively.
+
+* s3login configures ~/.s3cfg with temporary keys only.  Permanent
+  keys should be done manually.  Also should accept a token
+  or OS_AUTH_TOKEN/OS_TOKEN to get the AK/SK.
+  ```ini
+  [default]
+  access_key = <your-temporary-AK>
+  secret_key = <your-temporary-SK>
+  access_token = <your-security-token>
+
+  host_base = obs.eu-de.otc.t-systems.com
+  host_bucket = %(bucket)s.obs.eu-de.otc.t-systems.com
+
+  use_https = True
+  signature_v2 = False
+
+  region = eu-de
+  ```
+  Use `pip install configupdater` instead of the built-in `configparser`
+  because it keeps comments.
+
+* Generate auth files
+  * HCL or ENV's
+  * output temp AK/SK, scoped bearer token
+  * accepts OS_AUTH_TOKEN/OS_TOKEN or OS_USERNAME, or CLI args or
+    --metadata server
+
 
 REF: https://python-otcextensions.readthedocs.io/en/latest/install/configuration.html

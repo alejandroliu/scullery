@@ -13,6 +13,7 @@ scullery |release|
    apidocs/index
    docs/config
    recipes/index
+   docs/NOTES
 
 
 Indices and tables

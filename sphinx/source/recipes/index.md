@@ -5,7 +5,6 @@
 
 kermit
 buckets
-curler
 deh
 ecs
 groups

@@ -1,7 +1,7 @@
 # ECS — Elastic Cloud Server Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_ecs
+.. module:: recipes.ecs
    :synopsis: List, inspect and control ECS servers, and query available flavors.
 ```
 

@@ -1,7 +1,7 @@
 # Show Proxy — Proxy Configuration Display
 
 ```{eval-rst}
-.. module:: scullery.rcp_showcfg
+.. module:: recipes.showcfg
    :synopsis: Display proxy auto-configuration and environment variables.
 ```
 

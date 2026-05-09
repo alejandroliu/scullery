@@ -1,7 +1,7 @@
 # Kermit — Project Environment Setup
 
 ```{eval-rst}
-.. module:: scullery.rcp_kermit
+.. module:: recipes.kermit
    :synopsis: Set up and dismantle project environments.
 ```
 

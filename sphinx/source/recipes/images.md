@@ -1,7 +1,7 @@
 # IMS — Image Management Service
 
 ```{eval-rst}
-.. module:: scullery.rcp_ims
+.. module:: recipes.ims
    :synopsis: List and inspect cloud images.
 ```
 

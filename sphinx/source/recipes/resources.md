@@ -1,7 +1,7 @@
 # RMS — Resource Management Service
 
 ```{eval-rst}
-.. module:: scullery.rcp_rms
+.. module:: recipes.rms
    :synopsis: List cloud resources across projects.
 ```
 

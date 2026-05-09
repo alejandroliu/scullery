@@ -1,7 +1,7 @@
 # Roles — IAM Role Management
 
 ```{eval-rst}
-.. module:: scullery.rcp_roles
+.. module:: recipes.roles
    :synopsis: List, create, delete and inspect IAM roles.
 ```
 

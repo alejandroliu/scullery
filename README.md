@@ -43,7 +43,6 @@ See [Configuration Reference](docs/config.md) for the full configuration referen
 | Command | Module | Description |
 |---------|--------|-------------|
 | `scullery bucket` | `rcp_buckets.py` | **OBS** – list, create, delete buckets; manage tags and access policies |
-| `scullery GET` / `DELETE` / `PUT` / `POST` | `rcp_curler.py` | Raw HTTP(S) API calls using the configured authentication |
 | `scullery deh` | `rcp_deh.py` | List available **Dedicated Host** types |
 | `scullery ecs` | `rcp_ecs.py` | **ECS** – list, inspect, start, stop, reboot servers; query flavors |
 | `scullery groups` | `rcp_groups.py` | **IAM Groups** – list, get details, create, delete |
