@@ -44,6 +44,15 @@ Authentication is done via
 * SCL_REGION = eu-de|eu-nl -- test if we can auth in DE and then use
   a eu-nl project
 
+We have code to do AK/SK reuqests, but these are not allowed to do
+IAM calls, TMS is also not working with AK/SK.  They are scoped
+at creation time (to the scope of the token that created the AK/SK)
+so they can not change scope after creation.
+
+Most of the recipes do not work with those restrictions.  The only
+recipes that work well with those restrictions are the buckets recipes
+and the raw REST API recipes.
+
 or
 
 .config/scullery/creds.yaml
