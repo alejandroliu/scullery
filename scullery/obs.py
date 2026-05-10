@@ -2,6 +2,8 @@
 #
 # OBS (Object Storage Service) bucket management
 #
+from __future__ import annotations
+
 '''OBS Bucket API — list, create, and delete buckets.
 
 The OBS API requires **AWS Signature V4** (AWS4-HMAC-SHA256) signing for

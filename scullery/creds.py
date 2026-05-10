@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 #
-# Credential resolution — Terraform-compatible authentication
+# Credential resolution
+#
+# We dropped the Terraform compatible, as this module has a
+# narrower credential profile.  Essentially AK/Sk are useless
+# here.  (Due to API limitations).
+#
+# The only credentials that make sense here are Username+Password
+# and to a lesser extend Token based credentials.  (Either from
+# user+password or IdP Federation).
+#
+
+#
+
+
 #
 # Supports the same authentication methods and environment variables as the
 # Terraform OpenTelekomCloud provider:
